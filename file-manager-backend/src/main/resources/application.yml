@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: file-manager
+
+# 文件管理配置
+file-manager:
+  # 根目录路径，默认为当前工作目录
+  root-path: D:\WorkNotes
+  # 最大文件大小 (10MB)
+  max-file-size: 10485760
+  # 支持的文本文件扩展名
+  text-extensions:
+    - md
+    - txt
+    - html
+    - css
+    - js
+    - ts
+    - json
+    - xml
+    - yaml
+    - yml
+    - java
+    - py
+    - sql
+
+logging:
+  level:
+    com.filemanager: DEBUG
