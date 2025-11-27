@@ -132,6 +132,13 @@ public class FileServiceImpl implements FileService {
         PathValidator.validatePath(path, rootPath);
         return Files.exists(resolvedPath);
     }
+    
+    @Override
+    public Path getFilePath(String path) {
+        Path resolvedPath = resolvePath(path);
+        PathValidator.validatePath(path, rootPath);
+        return resolvedPath;
+    }
 
     
     /**

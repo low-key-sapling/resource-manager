@@ -17,5 +17,18 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  optimizeDeps: {
+    include: ['monaco-editor']
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'monaco-editor': ['monaco-editor'],
+          'pdfjs': ['pdfjs-dist']
+        }
+      }
+    }
   }
 })

@@ -49,4 +49,11 @@ public interface FileService {
      * @return 是否存在
      */
     boolean exists(String path);
+    
+    /**
+     * 获取文件的完整路径
+     * @param path 相对路径
+     * @return 完整的Path对象
+     */
+    java.nio.file.Path getFilePath(String path);
 }

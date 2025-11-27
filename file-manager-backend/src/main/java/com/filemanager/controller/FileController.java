@@ -6,9 +6,15 @@ import com.filemanager.dto.FileNodeDTO;
 import com.filemanager.service.FileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -97,5 +103,38 @@ public class FileController {
         log.info("检查是否存在: {}", path);
         boolean exists = fileService.exists(path);
         return ResponseEntity.ok(ApiResponse.success(exists));
+    }
+    
+    /**
+     * 下载/流式传输文件（用于PDF等二进制文件）
+     * GET /api/files/download?path={path}
+     */
+    @GetMapping("/download")
+    public ResponseEntity<Resource> downloadFile(@RequestParam String path) {
+        log.info("下载文件: {}", path);
+        try {
+            Path filePath = fileService.getFilePath(path);
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            String contentType = "application/octet-stream";
+            String filename = filePath.getFileName().toString();
+            
+            // 根据文件扩展名设置Content-Type
+            if (filename.toLowerCase().endsWith(".pdf")) {
+                contentType = "application/pdf";
+            }
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (MalformedURLException e) {
+            log.error("文件路径错误: {}", path, e);
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

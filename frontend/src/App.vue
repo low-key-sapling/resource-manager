@@ -1,14 +1,26 @@
 <template>
   <div id="app">
-    <header class="header">
-      <h1>📁 文件管理器</h1>
-    </header>
+    <AppHeader 
+      title="文件管理器" 
+      :sidebar-collapsed="sidebarCollapsed"
+      @toggle-menu="toggleSidebar"
+    />
     
     <div class="app-container">
-      <aside class="sidebar">
+      <div 
+        class="sidebar-overlay" 
+        :class="{ visible: !sidebarCollapsed && isMobile }"
+        @click="closeSidebar"
+      ></div>
+      
+      <aside class="sidebar" :class="{ collapsed: sidebarCollapsed, open: !sidebarCollapsed && isMobile }">
         <div class="toolbar">
-          <button class="btn" @click="showCreateDialog(true)">📁 新建目录</button>
-          <button class="btn" @click="showCreateDialog(false)">📄 新建文件</button>
+          <button class="btn" @click="showCreateDialog(true)">
+            <span>📁</span> 新建目录
+          </button>
+          <button class="btn" @click="showCreateDialog(false)">
+            <span>📄</span> 新建文件
+          </button>
         </div>
         <TreeView
           ref="treeViewRef"
@@ -18,35 +30,53 @@
       </aside>
       
       <main class="main-content">
-        <div class="content-toolbar" v-if="selectedFile">
-          <span class="current-file">{{ selectedFile.name }}</span>
+        <div class="content-toolbar" v-if="selectedFile || selectedDirectory">
+          <Breadcrumb 
+            :path="currentPath" 
+            @navigate="handleBreadcrumbNavigate"
+          />
           <div class="toolbar-actions">
-            <button 
-              v-if="isEditable" 
-              class="btn"
-              :class="{ 'btn-primary': isEditing }"
-              @click="toggleEdit"
-            >
-              {{ isEditing ? '预览' : '编辑' }}
-            </button>
+            <template v-if="selectedFile?.type === 'file'">
+              <button 
+                v-if="isEditable" 
+                class="btn"
+                :class="{ 'btn-primary': isEditing }"
+                @click="toggleEdit"
+              >
+                {{ isEditing ? '📖 预览' : '✏️ 编辑' }}
+              </button>
+            </template>
           </div>
         </div>
         
         <div class="content-area">
+          <DirectoryView
+            v-if="selectedDirectory && !selectedFile"
+            :path="selectedDirectory.path"
+            :files="selectedDirectory.children || []"
+            @select="handleDirectoryItemSelect"
+            @navigate="handleDirectoryNavigate"
+          />
+          
           <FileEditor
-            v-if="isEditing && selectedFile"
+            v-else-if="isEditing && selectedFile"
             ref="editorRef"
             :path="selectedFile.path"
+            :extension="selectedFile.extension"
             @saved="handleSaved"
             @change="handleEditorChange"
           />
+          
           <FilePreview
             v-else-if="selectedFile"
             :path="selectedFile.path"
             :extension="selectedFile.extension"
           />
+          
           <div v-else class="empty-state">
-            <p>👈 选择一个文件进行预览或编辑</p>
+            <div class="empty-icon">📂</div>
+            <p class="empty-text">选择一个文件或目录开始浏览</p>
+            <p class="empty-hint">点击左侧目录树中的项目</p>
           </div>
         </div>
       </main>
@@ -73,9 +103,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { FileNode } from '@/types'
+import AppHeader from '@/components/AppHeader.vue'
 import TreeView from '@/components/TreeView.vue'
+import DirectoryView from '@/components/DirectoryView.vue'
+import Breadcrumb from '@/components/Breadcrumb.vue'
 import FilePreview from '@/components/preview/FilePreview.vue'
 import FileEditor from '@/components/FileEditor.vue'
 import CreateDialog from '@/components/CreateDialog.vue'
@@ -87,8 +120,14 @@ const treeViewRef = ref<InstanceType<typeof TreeView> | null>(null)
 const editorRef = ref<InstanceType<typeof FileEditor> | null>(null)
 const toastRef = ref<InstanceType<typeof Toast> | null>(null)
 
+const sidebarCollapsed = ref(false)
+const isMobile = ref(false)
+
 const selectedFile = ref<FileNode | null>(null)
-const selectedPath = computed(() => selectedFile.value?.path || '')
+const selectedDirectory = ref<FileNode | null>(null)
+const selectedPath = computed(() => selectedFile.value?.path || selectedDirectory.value?.path || '')
+const currentPath = computed(() => selectedFile.value?.path || selectedDirectory.value?.path || '/')
+
 const isEditing = ref(false)
 const hasUnsavedChanges = ref(false)
 
@@ -98,8 +137,8 @@ const confirmDialogVisible = ref(false)
 const pendingAction = ref<(() => void) | null>(null)
 
 const currentParentPath = computed(() => {
+  if (selectedDirectory.value) return selectedDirectory.value.path
   if (!selectedFile.value) return '/'
-  if (selectedFile.value.type === 'directory') return selectedFile.value.path
   const parts = selectedFile.value.path.split('/')
   parts.pop()
   return parts.join('/') || '/'
@@ -108,6 +147,23 @@ const currentParentPath = computed(() => {
 const isEditable = computed(() => {
   return selectedFile.value?.type === 'file' && checkEditable(selectedFile.value.extension)
 })
+
+function checkMobile() {
+  isMobile.value = window.innerWidth < 768
+  if (!isMobile.value) {
+    sidebarCollapsed.value = false
+  }
+}
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+function closeSidebar() {
+  if (isMobile.value) {
+    sidebarCollapsed.value = true
+  }
+}
 
 function handleSelect(node: FileNode) {
   if (hasUnsavedChanges.value) {
@@ -119,9 +175,37 @@ function handleSelect(node: FileNode) {
 }
 
 function selectNode(node: FileNode) {
-  selectedFile.value = node
+  if (node.type === 'directory') {
+    selectedDirectory.value = node
+    selectedFile.value = null
+  } else {
+    selectedFile.value = node
+  }
   isEditing.value = false
   hasUnsavedChanges.value = false
+  
+  if (isMobile.value) {
+    sidebarCollapsed.value = true
+  }
+}
+
+function handleDirectoryItemSelect(node: FileNode) {
+  if (node.type === 'file') {
+    selectedFile.value = node
+    isEditing.value = false
+  } else if (node.type === 'directory') {
+    // 双击目录时进入该目录
+    selectedDirectory.value = node
+    selectedFile.value = null
+  }
+}
+
+function handleDirectoryNavigate(path: string) {
+  treeViewRef.value?.navigateToPath(path)
+}
+
+function handleBreadcrumbNavigate(path: string) {
+  treeViewRef.value?.navigateToPath(path)
 }
 
 function toggleEdit() {
@@ -158,7 +242,15 @@ function confirmLeave() {
   pendingAction.value = null
 }
 
-// 页面离开提示
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
+
 window.addEventListener('beforeunload', (e) => {
   if (hasUnsavedChanges.value) {
     e.preventDefault()
@@ -172,27 +264,62 @@ window.addEventListener('beforeunload', (e) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  min-height: 48px;
 }
 
-.current-file {
-  font-weight: 500;
-  color: #333;
+.toolbar-actions {
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 .content-area {
   flex: 1;
   overflow: hidden;
+  background: var(--bg-secondary);
 }
 
 .empty-state {
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #999;
-  font-size: 16px;
+  color: var(--text-muted);
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-hint {
+  font-size: 14px;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.sidebar-overlay.visible {
+  display: block;
+  opacity: 1;
 }
 </style>

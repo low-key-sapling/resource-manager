@@ -51,28 +51,47 @@ async function refresh() {
   await loadTree()
 }
 
+function findNodeByPath(node: FileNode, path: string): FileNode | null {
+  if (node.path === path) return node
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findNodeByPath(child, path)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+function navigateToPath(path: string) {
+  if (!tree.value) return
+  const node = findNodeByPath(tree.value, path)
+  if (node) {
+    emit('select', node)
+  }
+}
+
 onMounted(() => {
   loadTree()
 })
 
-defineExpose({ refresh })
+defineExpose({ refresh, navigateToPath })
 </script>
 
 <style scoped>
 .tree-view {
   height: 100%;
   overflow: auto;
-  padding: 8px;
+  padding: var(--spacing-sm);
 }
 
 .loading, .error, .empty {
-  padding: 20px;
+  padding: var(--spacing-lg);
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .error {
-  color: #d32f2f;
+  color: var(--error-color);
 }
 
 .tree-container {

@@ -83,6 +83,36 @@ export const fileApi = {
       throw new Error(response.data.message || '检查文件失败')
     }
     return response.data.data!
+  },
+
+  /**
+   * 重命名文件或目录
+   */
+  async rename(oldPath: string, newPath: string): Promise<void> {
+    const response = await api.put<ApiResponse<void>>('/rename', { oldPath, newPath })
+    if (!response.data.success) {
+      throw new Error(response.data.message || '重命名失败')
+    }
+  },
+
+  /**
+   * 删除文件或目录
+   */
+  async delete(path: string): Promise<void> {
+    const response = await api.delete<ApiResponse<void>>('/delete', { params: { path } })
+    if (!response.data.success) {
+      throw new Error(response.data.message || '删除失败')
+    }
+  },
+
+  /**
+   * 移动文件或目录
+   */
+  async move(sourcePath: string, targetPath: string): Promise<void> {
+    const response = await api.put<ApiResponse<void>>('/move', { sourcePath, targetPath })
+    if (!response.data.success) {
+      throw new Error(response.data.message || '移动失败')
+    }
   }
 }
 

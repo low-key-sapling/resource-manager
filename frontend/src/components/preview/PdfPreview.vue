@@ -1,45 +1,72 @@
 <template>
   <div class="pdf-preview">
-    <div class="pdf-message">
-      <p>📕 PDF 文件预览</p>
-      <p class="path">{{ path }}</p>
-      <p class="hint">PDF 预览需要额外配置 PDF.js 库</p>
+    <div class="pdf-toolbar">
+      <a 
+        :href="downloadUrl" 
+        target="_blank" 
+        class="btn btn-sm"
+        title="在新窗口打开"
+      >
+        🔗 新窗口打开
+      </a>
+      <a 
+        :href="downloadUrl" 
+        download 
+        class="btn btn-sm"
+        title="下载PDF"
+      >
+        ⬇️ 下载
+      </a>
+    </div>
+    
+    <div class="pdf-container">
+      <iframe 
+        :src="downloadUrl"
+        class="pdf-iframe"
+        frameborder="0"
+      ></iframe>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+
+const props = defineProps<{
   path: string
 }>()
+
+const downloadUrl = computed(() => {
+  return `/api/files/download?path=${encodeURIComponent(props.path)}`
+})
 </script>
 
 <style scoped>
 .pdf-preview {
   height: 100%;
   display: flex;
+  flex-direction: column;
+  background: var(--bg-tertiary);
+}
+
+.pdf-toolbar {
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  gap: var(--spacing-md);
 }
 
-.pdf-message {
-  text-align: center;
-  color: #666;
+.pdf-container {
+  flex: 1;
+  overflow: hidden;
 }
 
-.pdf-message p {
-  margin: 8px 0;
-}
-
-.pdf-message .path {
-  font-family: monospace;
-  font-size: 12px;
-  color: #999;
-}
-
-.pdf-message .hint {
-  font-size: 12px;
-  color: #999;
+.pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 </style>

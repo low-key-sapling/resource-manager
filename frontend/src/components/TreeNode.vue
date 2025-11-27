@@ -2,9 +2,10 @@
   <div class="tree-node">
     <div 
       class="node-content"
-      :class="{ selected: isSelected }"
+      :class="{ selected: isSelected, editing: isEditing }"
       :style="{ paddingLeft: `${depth * 16}px` }"
       @click="handleClick"
+      @contextmenu.prevent="handleContextMenu"
     >
       <span 
         v-if="node.type === 'directory'" 
@@ -15,7 +16,18 @@
       </span>
       <span v-else class="expand-icon-placeholder"></span>
       <span class="node-icon">{{ icon }}</span>
-      <span class="node-name">{{ node.name }}</span>
+      
+      <input
+        v-if="isEditing"
+        ref="editInputRef"
+        v-model="editName"
+        class="edit-input"
+        @blur="finishEdit"
+        @keyup.enter="finishEdit"
+        @keyup.escape="cancelEdit"
+        @click.stop
+      />
+      <span v-else class="node-name">{{ node.name }}</span>
     </div>
     
     <div v-if="node.type === 'directory' && isExpanded && node.children" class="children">
@@ -26,13 +38,16 @@
         :depth="depth + 1"
         :selected-path="selectedPath"
         @select="$emit('select', $event)"
+        @contextmenu="$emit('contextmenu', $event)"
+        @rename="$emit('rename', $event)"
+        @delete="$emit('delete', $event)"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 import type { FileNode } from '@/types'
 import { getFileIcon } from '@/utils/fileIcons'
 import { sortFileNodes } from '@/utils/fileSort'
@@ -44,8 +59,15 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  select: [node: FileNode]
+  (e: 'select', node: FileNode): void
+  (e: 'contextmenu', event: { mouseEvent: MouseEvent, node: FileNode }): void
+  (e: 'rename', data: { node: FileNode, newName: string }): void
+  (e: 'delete', node: FileNode): void
 }>()
+
+const editInputRef = ref<HTMLInputElement | null>(null)
+const isEditing = ref(false)
+const editName = ref('')
 
 const depth = computed(() => props.depth ?? 0)
 const isExpanded = ref(props.depth === 0)
@@ -65,8 +87,37 @@ function toggleExpand() {
 }
 
 function handleClick() {
-  emit('select', props.node)
+  if (!isEditing.value) {
+    emit('select', props.node)
+  }
 }
+
+function handleContextMenu(event: MouseEvent) {
+  emit('contextmenu', { mouseEvent: event, node: props.node })
+}
+
+function startEdit() {
+  isEditing.value = true
+  editName.value = props.node.name
+  nextTick(() => {
+    editInputRef.value?.focus()
+    editInputRef.value?.select()
+  })
+}
+
+function finishEdit() {
+  if (isEditing.value && editName.value && editName.value !== props.node.name) {
+    emit('rename', { node: props.node, newName: editName.value })
+  }
+  isEditing.value = false
+}
+
+function cancelEdit() {
+  isEditing.value = false
+  editName.value = props.node.name
+}
+
+defineExpose({ startEdit })
 </script>
 
 <style scoped>
@@ -77,33 +128,45 @@ function handleClick() {
 .node-content {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
 
 .node-content:hover {
-  background-color: #f0f0f0;
+  background-color: var(--bg-tertiary);
 }
 
 .node-content.selected {
-  background-color: #e3f2fd;
+  background-color: var(--primary-light);
+}
+
+.node-content.editing {
+  background-color: var(--bg-primary);
 }
 
 .expand-icon {
   width: 16px;
   font-size: 10px;
-  color: #666;
+  color: var(--text-muted);
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.expand-icon:hover {
+  color: var(--text-primary);
 }
 
 .expand-icon-placeholder {
   width: 16px;
+  flex-shrink: 0;
 }
 
 .node-icon {
-  margin-right: 6px;
+  margin-right: var(--spacing-xs);
   font-size: 14px;
+  flex-shrink: 0;
 }
 
 .node-name {
@@ -111,6 +174,17 @@ function handleClick() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.edit-input {
+  flex: 1;
+  padding: 2px var(--spacing-xs);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  outline: none;
+  background: var(--bg-primary);
 }
 
 .children {
