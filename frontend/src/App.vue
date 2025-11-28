@@ -28,9 +28,27 @@
           :selected-path="selectedPath"
           @select="handleSelect"
         />
+        <!-- 侧边栏收起按钮 -->
+        <button 
+          class="sidebar-collapse-btn"
+          @click="toggleSidebar"
+          :title="sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
+        >
+          {{ sidebarCollapsed ? '›' : '‹' }}
+        </button>
       </aside>
       
-      <main class="main-content">
+      <!-- 侧边栏展开按钮（收起时显示） -->
+      <button 
+        v-if="sidebarCollapsed && !isMobile"
+        class="sidebar-expand-btn"
+        @click="toggleSidebar"
+        title="展开侧边栏"
+      >
+        ›
+      </button>
+      
+      <main class="main-content" :class="{ fullscreen: isFullscreen }">
         <div class="content-toolbar" v-if="selectedFile || selectedDirectory">
           <Breadcrumb 
             :path="currentPath" 
@@ -47,6 +65,13 @@
                 {{ isEditing ? '📖 预览' : '✏️ 编辑' }}
               </button>
             </template>
+            <button 
+              class="btn btn-icon"
+              @click="toggleFullscreen"
+              :title="isFullscreen ? '退出全屏 (Esc)' : '全屏预览 (F)'"
+            >
+              {{ isFullscreen ? '⊙' : '⛶' }}
+            </button>
           </div>
         </div>
         
@@ -139,6 +164,7 @@ const currentPath = computed(() => selectedFile.value?.path || selectedDirectory
 
 const isEditing = ref(false)
 const hasUnsavedChanges = ref(false)
+const isFullscreen = ref(false)
 
 const createDialogVisible = ref(false)
 const createIsDirectory = ref(true)
@@ -277,13 +303,33 @@ function handleNavigateImage(path: string) {
   }
 }
 
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
+}
+
+// 全屏快捷键
+function handleKeydown(e: KeyboardEvent) {
+  // 避免在输入框中触发
+  if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
+    return
+  }
+  
+  if (e.key === 'f' || e.key === 'F') {
+    toggleFullscreen()
+  } else if (e.key === 'Escape' && isFullscreen.value) {
+    isFullscreen.value = false
+  }
+}
+
 onMounted(() => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 window.addEventListener('beforeunload', (e) => {
@@ -356,5 +402,75 @@ window.addEventListener('beforeunload', (e) => {
 .sidebar-overlay.visible {
   display: block;
   opacity: 1;
+}
+
+/* 侧边栏收起按钮 */
+.sidebar-collapse-btn {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 11;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--primary-color);
+}
+
+/* 侧边栏展开按钮 */
+.sidebar-expand-btn {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 11;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-expand-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--primary-color);
+  width: 32px;
+}
+
+/* 全屏模式 */
+.main-content.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bg-primary);
+}
+
+.main-content.fullscreen .content-toolbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
 }
 </style>
