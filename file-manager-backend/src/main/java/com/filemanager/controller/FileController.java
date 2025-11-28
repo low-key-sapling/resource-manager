@@ -122,10 +122,25 @@ public class FileController {
             
             String contentType = "application/octet-stream";
             String filename = filePath.getFileName().toString();
+            String lowerFilename = filename.toLowerCase();
             
             // 根据文件扩展名设置Content-Type
-            if (filename.toLowerCase().endsWith(".pdf")) {
+            if (lowerFilename.endsWith(".pdf")) {
                 contentType = "application/pdf";
+            } else if (lowerFilename.endsWith(".jpg") || lowerFilename.endsWith(".jpeg")) {
+                contentType = "image/jpeg";
+            } else if (lowerFilename.endsWith(".png")) {
+                contentType = "image/png";
+            } else if (lowerFilename.endsWith(".gif")) {
+                contentType = "image/gif";
+            } else if (lowerFilename.endsWith(".bmp")) {
+                contentType = "image/bmp";
+            } else if (lowerFilename.endsWith(".webp")) {
+                contentType = "image/webp";
+            } else if (lowerFilename.endsWith(".svg")) {
+                contentType = "image/svg+xml";
+            } else if (lowerFilename.endsWith(".ico")) {
+                contentType = "image/x-icon";
             }
             
             return ResponseEntity.ok()
