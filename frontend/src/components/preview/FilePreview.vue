@@ -11,7 +11,11 @@
       <PdfPreview :path="path" />
     </div>
     <div v-else-if="isImage" class="image-wrapper">
-      <ImagePreview :path="path" />
+      <ImagePreview 
+        :path="path" 
+        :sibling-images="siblingImages || []"
+        @navigate="(p: string) => emit('navigateImage', p)"
+      />
     </div>
     <div v-else-if="!content" class="preview-empty">
       <div class="empty-icon">📄</div>
@@ -43,6 +47,11 @@ import ImagePreview from './ImagePreview.vue'
 const props = defineProps<{
   path: string
   extension?: string
+  siblingImages?: string[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'navigateImage', path: string): void
 }>()
 
 const content = ref<FileContent | null>(null)

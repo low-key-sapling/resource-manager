@@ -1,6 +1,30 @@
 <template>
   <div class="image-preview">
     <div class="image-toolbar">
+      <!-- 图片导航 -->
+      <div class="toolbar-group nav-group" v-if="siblingImages.length > 1">
+        <button 
+          class="toolbar-btn nav-btn" 
+          @click="prevImage" 
+          :disabled="!hasPrev"
+          title="上一张 (←)"
+        >
+          <span class="icon">‹</span>
+        </button>
+        <span class="nav-info">{{ currentIndex + 1 }} / {{ siblingImages.length }}</span>
+        <button 
+          class="toolbar-btn nav-btn" 
+          @click="nextImage" 
+          :disabled="!hasNext"
+          title="下一张 (→)"
+        >
+          <span class="icon">›</span>
+        </button>
+      </div>
+      
+      <div class="toolbar-divider" v-if="siblingImages.length > 1"></div>
+      
+      <!-- 缩放控制 -->
       <div class="toolbar-group">
         <button class="toolbar-btn" @click="zoomOut" :disabled="scale <= 0.1" title="缩小 (-)">
           <span class="icon">−</span>
@@ -13,6 +37,7 @@
       
       <div class="toolbar-divider"></div>
       
+      <!-- 视图控制 -->
       <div class="toolbar-group">
         <button class="toolbar-btn" @click="resetView" title="重置视图">
           <span class="icon">⟲</span>
@@ -27,6 +52,7 @@
       
       <div class="toolbar-divider"></div>
       
+      <!-- 下载和新窗口 -->
       <div class="toolbar-group">
         <a :href="imageUrl" download class="toolbar-btn link-btn" title="下载图片">
           <span class="icon">↓</span>
@@ -47,6 +73,16 @@
       @mouseleave="endDrag"
       :class="{ dragging: isDragging, grabbable: imageLoaded }"
     >
+      <!-- 左侧导航按钮 -->
+      <button 
+        v-if="siblingImages.length > 1 && hasPrev"
+        class="nav-arrow nav-arrow-left"
+        @click="prevImage"
+        title="上一张"
+      >
+        ‹
+      </button>
+      
       <div v-if="loading && !imageLoaded" class="image-loading">
         <div class="loading-spinner"></div>
         <p>加载中...</p>
@@ -72,6 +108,16 @@
           draggable="false"
         />
       </div>
+      
+      <!-- 右侧导航按钮 -->
+      <button 
+        v-if="siblingImages.length > 1 && hasNext"
+        class="nav-arrow nav-arrow-right"
+        @click="nextImage"
+        title="下一张"
+      >
+        ›
+      </button>
     </div>
     
     <div class="image-info" v-if="imageInfo">
@@ -89,10 +135,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
 const props = defineProps<{
   path: string
+  siblingImages: string[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'navigate', path: string): void
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -113,6 +164,14 @@ const dragStartY = ref(0)
 const dragStartTranslateX = ref(0)
 const dragStartTranslateY = ref(0)
 
+// 图片导航
+const currentIndex = computed(() => {
+  return props.siblingImages.indexOf(props.path)
+})
+
+const hasPrev = computed(() => currentIndex.value > 0)
+const hasNext = computed(() => currentIndex.value < props.siblingImages.length - 1)
+
 const imageUrl = computed(() => {
   return `/api/files/download?path=${encodeURIComponent(props.path)}`
 })
@@ -125,6 +184,26 @@ const fileName = computed(() => {
 const wrapperStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
 }))
+
+// 切换图片时重置状态
+watch(() => props.path, () => {
+  loading.value = true
+  imageLoaded.value = false
+  error.value = null
+  resetView()
+})
+
+function prevImage() {
+  if (hasPrev.value) {
+    emit('navigate', props.siblingImages[currentIndex.value - 1])
+  }
+}
+
+function nextImage() {
+  if (hasNext.value) {
+    emit('navigate', props.siblingImages[currentIndex.value + 1])
+  }
+}
 
 function handleImageLoad(e: Event) {
   loading.value = false
@@ -169,7 +248,7 @@ function actualSize() {
 function fitToWindow() {
   if (!containerRef.value || !imageInfo.value) return
   
-  const containerWidth = containerRef.value.clientWidth - 60
+  const containerWidth = containerRef.value.clientWidth - 120
   const containerHeight = containerRef.value.clientHeight - 60
   
   const widthRatio = containerWidth / imageInfo.value.width
@@ -189,6 +268,8 @@ function handleWheel(e: WheelEvent) {
 // 拖动功能
 function startDrag(e: MouseEvent) {
   if (!imageLoaded.value) return
+  // 避免点击导航按钮时触发拖动
+  if ((e.target as HTMLElement).closest('.nav-arrow')) return
   isDragging.value = true
   dragStartX.value = e.clientX
   dragStartY.value = e.clientY
@@ -210,12 +291,23 @@ function endDrag() {
 
 // 键盘快捷键
 function handleKeydown(e: KeyboardEvent) {
+  // 避免在输入框中触发
+  if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
+    return
+  }
+  
   if (e.key === '+' || e.key === '=') {
     zoomIn()
   } else if (e.key === '-') {
     zoomOut()
   } else if (e.key === '0') {
     resetView()
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    prevImage()
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    nextImage()
   }
 }
 
@@ -255,6 +347,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.nav-group {
+  gap: 8px;
 }
 
 .toolbar-divider {
@@ -299,6 +395,19 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
+.nav-btn .icon {
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.nav-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-width: 50px;
+  text-align: center;
+  font-family: monospace;
+}
+
 .link-btn {
   text-decoration: none;
 }
@@ -319,12 +428,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   position: relative;
-  /* 美化的深色渐变背景 */
-  background: 
-    radial-gradient(circle at 50% 50%, #2a2a3a 0%, #1a1a2e 100%);
+  background: radial-gradient(circle at 50% 50%, #2a2a3a 0%, #1a1a2e 100%);
 }
 
-/* 添加微妙的网格图案 */
 .image-container::before {
   content: '';
   position: absolute;
@@ -342,6 +448,41 @@ onUnmounted(() => {
 
 .image-container.dragging {
   cursor: grabbing;
+}
+
+/* 侧边导航箭头 */
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 80px;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  color: white;
+  font-size: 36px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.nav-arrow:hover {
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 1;
+}
+
+.nav-arrow-left {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.nav-arrow-right {
+  right: 0;
+  border-radius: 8px 0 0 8px;
 }
 
 .image-loading,

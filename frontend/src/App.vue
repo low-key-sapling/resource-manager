@@ -72,6 +72,8 @@
             v-else-if="selectedFile"
             :path="selectedFile.path"
             :extension="selectedFile.extension"
+            :sibling-images="siblingImages"
+            @navigate-image="handleNavigateImage"
           />
           
           <div v-else class="empty-state">
@@ -154,6 +156,15 @@ const currentParentPath = computed(() => {
 
 const isEditable = computed(() => {
   return selectedFile.value?.type === 'file' && checkEditable(selectedFile.value.extension)
+})
+
+// 获取同目录下的图片文件列表
+const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']
+const siblingImages = computed(() => {
+  if (!selectedDirectory.value?.children) return []
+  return selectedDirectory.value.children
+    .filter(f => f.type === 'file' && f.extension && imageExtensions.includes(f.extension.toLowerCase()))
+    .map(f => f.path)
 })
 
 function checkMobile() {
@@ -256,6 +267,14 @@ function handleSettingsSaved() {
   selectedDirectory.value = null
   treeViewRef.value?.refresh()
   toastRef.value?.show('根目录已更新', 'success')
+}
+
+function handleNavigateImage(path: string) {
+  // 在同目录图片列表中找到对应的文件节点
+  const imageFile = selectedDirectory.value?.children?.find(f => f.path === path)
+  if (imageFile) {
+    selectedFile.value = imageFile
+  }
 }
 
 onMounted(() => {
