@@ -28,24 +28,17 @@
           :selected-path="selectedPath"
           @select="handleSelect"
         />
-        <!-- 侧边栏收起按钮 -->
-        <button 
-          class="sidebar-collapse-btn"
-          @click="toggleSidebar"
-          :title="sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
-        >
-          {{ sidebarCollapsed ? '›' : '‹' }}
-        </button>
       </aside>
       
-      <!-- 侧边栏展开按钮（收起时显示） -->
+      <!-- 侧边栏切换按钮（始终显示） -->
       <button 
-        v-if="sidebarCollapsed && !isMobile"
-        class="sidebar-expand-btn"
+        v-if="!isMobile"
+        class="sidebar-toggle-btn"
+        :class="{ collapsed: sidebarCollapsed }"
         @click="toggleSidebar"
-        title="展开侧边栏"
+        :title="sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
       >
-        ›
+        {{ sidebarCollapsed ? '›' : '‹' }}
       </button>
       
       <main class="main-content" :class="{ fullscreen: isFullscreen }">
@@ -404,61 +397,33 @@ window.addEventListener('beforeunload', (e) => {
   opacity: 1;
 }
 
-/* 侧边栏收起按钮 */
-.sidebar-collapse-btn {
-  position: absolute;
-  right: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 48px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-left: none;
-  border-radius: 0 8px 8px 0;
+/* 侧边栏切换按钮 */
+.sidebar-toggle-btn {
+  position: relative;
+  width: 20px;
+  min-width: 20px;
+  height: 100%;
+  background: var(--bg-tertiary);
+  border: none;
+  border-left: 1px solid var(--border-color);
   cursor: pointer;
-  font-size: 16px;
-  color: var(--text-secondary);
+  font-size: 14px;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   z-index: 11;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
 }
 
-.sidebar-collapse-btn:hover {
-  background: var(--bg-tertiary);
+.sidebar-toggle-btn:hover {
+  background: var(--bg-hover);
   color: var(--primary-color);
 }
 
-/* 侧边栏展开按钮 */
-.sidebar-expand-btn {
-  position: fixed;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 48px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+.sidebar-toggle-btn.collapsed {
   border-left: none;
-  border-radius: 0 8px 8px 0;
-  cursor: pointer;
-  font-size: 16px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  z-index: 11;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-}
-
-.sidebar-expand-btn:hover {
-  background: var(--bg-tertiary);
-  color: var(--primary-color);
-  width: 32px;
+  border-right: 1px solid var(--border-color);
 }
 
 /* 全屏模式 */

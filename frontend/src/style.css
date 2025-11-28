@@ -98,23 +98,23 @@ body {
 /* 侧边栏 */
 .sidebar {
   width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
   background: var(--bg-primary);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transition: width var(--transition-normal), transform var(--transition-normal);
+  transition: width var(--transition-normal), min-width var(--transition-normal), opacity var(--transition-normal);
   box-shadow: var(--shadow-sm);
   z-index: 10;
-}
-
-.sidebar {
   position: relative;
+  overflow: hidden;
 }
 
 .sidebar.collapsed {
-  width: var(--sidebar-collapsed-width);
-  transform: translateX(-100%);
-  margin-left: calc(-1 * var(--sidebar-width));
+  width: 0;
+  min-width: 0;
+  border-right: none;
+  opacity: 0;
 }
 
 /* 主内容区 */
