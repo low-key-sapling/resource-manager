@@ -1,7 +1,7 @@
 <template>
   <div 
     class="file-card"
-    :class="{ selected, directory: node.type === 'directory', 'drag-over': isDragOver }"
+    :class="{ selected, directory: node.type === 'directory', 'drag-over': isDragOver, 'has-thumbnail': isImage }"
     draggable="true"
     @click="$emit('click', node)"
     @dblclick="$emit('dblclick', node)"
@@ -12,7 +12,21 @@
     @dragleave="handleDragLeave"
     @drop.prevent="handleDrop"
   >
-    <div class="file-icon">
+    <!-- 图片缩略图 -->
+    <div v-if="isImage" class="file-thumbnail">
+      <img 
+        :src="thumbnailUrl" 
+        :alt="node.name"
+        class="thumbnail-image"
+        @error="handleThumbnailError"
+        @load="thumbnailLoaded = true"
+      />
+      <div v-if="!thumbnailLoaded" class="thumbnail-placeholder">
+        <span class="thumbnail-icon">{{ icon }}</span>
+      </div>
+    </div>
+    <!-- 普通文件图标 -->
+    <div v-else class="file-icon">
       {{ icon }}
     </div>
     <div class="file-info">
@@ -52,8 +66,25 @@ const emit = defineEmits<{
 }>()
 
 const isDragOver = ref(false)
+const thumbnailLoaded = ref(false)
+
+const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']
+const isImage = computed(() => {
+  return props.node.type === 'file' && 
+    props.node.extension && 
+    imageExtensions.includes(props.node.extension.toLowerCase())
+})
+
+const thumbnailUrl = computed(() => {
+  if (!isImage.value) return ''
+  return `/api/files/download?path=${encodeURIComponent(props.node.path)}`
+})
 
 const icon = computed(() => getFileIcon(props.node.type, props.node.extension))
+
+function handleThumbnailError() {
+  thumbnailLoaded.value = false
+}
 
 function handleDragStart(e: DragEvent) {
   if (e.dataTransfer) {
@@ -154,6 +185,49 @@ function formatDate(dateStr: string): string {
   font-size: 48px;
   margin-bottom: var(--spacing-sm);
   line-height: 1;
+}
+
+/* 图片缩略图 */
+.file-thumbnail {
+  width: 100%;
+  height: 80px;
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-fast);
+}
+
+.file-card:hover .thumbnail-image {
+  transform: scale(1.05);
+}
+
+.thumbnail-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+}
+
+.thumbnail-icon {
+  font-size: 36px;
+  opacity: 0.5;
+}
+
+.file-card.has-thumbnail {
+  padding-top: var(--spacing-sm);
 }
 
 .file-info {
