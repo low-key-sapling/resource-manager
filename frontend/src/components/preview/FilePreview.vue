@@ -10,6 +10,9 @@
     <div v-else-if="isPdf" class="pdf-wrapper">
       <PdfPreview :path="path" />
     </div>
+    <div v-else-if="isImage" class="image-wrapper">
+      <ImagePreview :path="path" />
+    </div>
     <div v-else-if="!content" class="preview-empty">
       <div class="empty-icon">📄</div>
       <p>选择一个文件进行预览</p>
@@ -35,6 +38,7 @@ import MarkdownPreview from './MarkdownPreview.vue'
 import TextPreview from './TextPreview.vue'
 import HtmlPreview from './HtmlPreview.vue'
 import PdfPreview from './PdfPreview.vue'
+import ImagePreview from './ImagePreview.vue'
 
 const props = defineProps<{
   path: string
@@ -46,11 +50,13 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 const textExtensions = ['txt', 'css', 'js', 'ts', 'json', 'xml', 'yaml', 'yml', 'java', 'py', 'sql', 'sh', 'bat', 'ini', 'conf', 'log', 'vue', 'jsx', 'tsx']
+const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']
 const ext = computed(() => props.extension?.toLowerCase())
 const isTextFile = computed(() => ext.value && textExtensions.includes(ext.value))
 const isMarkdown = computed(() => ext.value === 'md' || ext.value === 'markdown')
 const isHtml = computed(() => ext.value === 'html' || ext.value === 'htm')
 const isPdf = computed(() => ext.value === 'pdf')
+const isImage = computed(() => ext.value && imageExtensions.includes(ext.value))
 
 async function loadContent() {
   if (!props.path) {
@@ -66,8 +72,8 @@ async function loadContent() {
     return
   }
   
-  // PDF文件不需要加载文本内容，直接由PdfPreview组件处理
-  if (isPdf.value) {
+  // PDF和图片文件不需要加载文本内容，直接由专用组件处理
+  if (isPdf.value || isImage.value) {
     loading.value = false
     error.value = null
     content.value = null
@@ -150,7 +156,8 @@ defineExpose({ refresh: loadContent })
   margin-top: var(--spacing-sm);
 }
 
-.pdf-wrapper {
+.pdf-wrapper,
+.image-wrapper {
   height: 100%;
   display: flex;
   flex-direction: column;
