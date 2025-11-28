@@ -56,4 +56,16 @@ public interface FileService {
      * @return 完整的Path对象
      */
     java.nio.file.Path getFilePath(String path);
+    
+    /**
+     * 获取当前根目录路径
+     * @return 根目录路径
+     */
+    String getRootPath();
+    
+    /**
+     * 设置根目录路径
+     * @param rootPath 新的根目录路径
+     */
+    void setRootPath(String rootPath);
 }

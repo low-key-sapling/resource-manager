@@ -4,6 +4,7 @@
       title="文件管理器" 
       :sidebar-collapsed="sidebarCollapsed"
       @toggle-menu="toggleSidebar"
+      @settings="settingsDialogVisible = true"
     />
     
     <div class="app-container">
@@ -99,6 +100,11 @@
     />
     
     <Toast ref="toastRef" />
+    
+    <SettingsDialog
+      v-model:visible="settingsDialogVisible"
+      @saved="handleSettingsSaved"
+    />
   </div>
 </template>
 
@@ -114,6 +120,7 @@ import FileEditor from '@/components/FileEditor.vue'
 import CreateDialog from '@/components/CreateDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import Toast from '@/components/Toast.vue'
+import SettingsDialog from '@/components/SettingsDialog.vue'
 import { isEditable as checkEditable } from '@/utils/fileIcons'
 
 const treeViewRef = ref<InstanceType<typeof TreeView> | null>(null)
@@ -134,6 +141,7 @@ const hasUnsavedChanges = ref(false)
 const createDialogVisible = ref(false)
 const createIsDirectory = ref(true)
 const confirmDialogVisible = ref(false)
+const settingsDialogVisible = ref(false)
 const pendingAction = ref<(() => void) | null>(null)
 
 const currentParentPath = computed(() => {
@@ -240,6 +248,14 @@ function confirmLeave() {
   hasUnsavedChanges.value = false
   pendingAction.value?.()
   pendingAction.value = null
+}
+
+function handleSettingsSaved() {
+  // 根目录更改后刷新目录树
+  selectedFile.value = null
+  selectedDirectory.value = null
+  treeViewRef.value?.refresh()
+  toastRef.value?.show('根目录已更新', 'success')
 }
 
 onMounted(() => {

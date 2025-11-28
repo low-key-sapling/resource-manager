@@ -113,6 +113,27 @@ export const fileApi = {
     if (!response.data.success) {
       throw new Error(response.data.message || '移动失败')
     }
+  },
+
+  /**
+   * 获取根目录路径
+   */
+  async getRootPath(): Promise<string> {
+    const response = await api.get<ApiResponse<string>>('/config/root-path')
+    if (!response.data.success) {
+      throw new Error(response.data.message || '获取根目录失败')
+    }
+    return response.data.data!
+  },
+
+  /**
+   * 设置根目录路径
+   */
+  async setRootPath(rootPath: string): Promise<void> {
+    const response = await api.put<ApiResponse<void>>('/config/root-path', { rootPath })
+    if (!response.data.success) {
+      throw new Error(response.data.message || '设置根目录失败')
+    }
   }
 }
 

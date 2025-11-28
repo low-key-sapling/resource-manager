@@ -137,4 +137,27 @@ public class FileController {
             return ResponseEntity.badRequest().build();
         }
     }
+    
+    /**
+     * 获取当前根目录路径
+     * GET /api/files/config/root-path
+     */
+    @GetMapping("/config/root-path")
+    public ResponseEntity<ApiResponse<String>> getRootPath() {
+        log.info("获取根目录路径");
+        String rootPath = fileService.getRootPath();
+        return ResponseEntity.ok(ApiResponse.success(rootPath));
+    }
+    
+    /**
+     * 设置根目录路径
+     * PUT /api/files/config/root-path
+     */
+    @PutMapping("/config/root-path")
+    public ResponseEntity<ApiResponse<Void>> setRootPath(@RequestBody Map<String, String> request) {
+        String rootPath = request.get("rootPath");
+        log.info("设置根目录路径: {}", rootPath);
+        fileService.setRootPath(rootPath);
+        return ResponseEntity.ok(ApiResponse.success(null, "根目录设置成功"));
+    }
 }

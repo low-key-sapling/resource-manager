@@ -15,6 +15,9 @@
     </div>
     
     <div class="header-right">
+      <button class="header-btn" @click="$emit('settings')" title="设置">
+        ⚙️
+      </button>
       <slot name="actions"></slot>
     </div>
   </header>
@@ -28,6 +31,7 @@ defineProps<{
 
 defineEmits<{
   (e: 'toggle-menu'): void
+  (e: 'settings'): void
 }>()
 </script>
 
@@ -93,6 +97,25 @@ defineEmits<{
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+}
+
+.header-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 18px;
+  transition: background var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 @media (max-width: 768px) {

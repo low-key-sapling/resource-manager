@@ -139,6 +139,24 @@ public class FileServiceImpl implements FileService {
         PathValidator.validatePath(path, rootPath);
         return resolvedPath;
     }
+    
+    @Override
+    public String getRootPath() {
+        return rootPath;
+    }
+    
+    @Override
+    public void setRootPath(String newRootPath) {
+        Path path = Paths.get(newRootPath);
+        if (!Files.exists(path)) {
+            throw new FileOperationException("INVALID_PATH", "目录不存在: " + newRootPath);
+        }
+        if (!Files.isDirectory(path)) {
+            throw new FileOperationException("INVALID_PATH", "路径不是目录: " + newRootPath);
+        }
+        this.rootPath = newRootPath;
+        log.info("根目录已更新为: {}", newRootPath);
+    }
 
     
     /**
